@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #/usr/bin/python2
 '''
-By kyubyong park. kbpark.linguist@gmail.com.
+By kyubyong park. kbpark.linguist@gmail.com. 
 https://www.github.com/kyubyong/dc_tts
 '''
 from __future__ import print_function, division
@@ -9,14 +9,14 @@ from __future__ import print_function, division
 import numpy as np
 import librosa
 import os, copy
-# import matplotlib
-# matplotlib.use('pdf')
-# import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('pdf')
+import matplotlib.pyplot as plt
 from scipy import signal
-import math
 
 from hyperparams import Hyperparams as hp
 import tensorflow as tf
+
 
 def get_spectrograms(fpath):
     '''Parse the wave file in `fpath` and
@@ -140,11 +140,10 @@ def guided_attention(g=0.2):
             W[n_pos, t_pos] = 1 - np.exp(-(t_pos / float(hp.max_T) - n_pos / float(hp.max_N)) ** 2 / (2 * g * g))
     return W
 
-def learning_rate_decay(init_lr, global_step, warmup_steps = math.ceil(13100 / hp.B) * hp.warmup_epochs, decay=hp.decay):
+def learning_rate_decay(init_lr, global_step, warmup_steps = 4000.0):
     '''Noam scheme from tensor2tensor'''
-    step = tf.dtypes.cast(global_step + 1, tf.float32)
-    return init_lr * warmup_steps**0.5 * tf.math.minimum(step * warmup_steps**-1.5, step**-0.5)
-    #return init_lr / (1+decay*step)
+    step = tf.to_float(global_step + 1)
+    return init_lr * warmup_steps**0.5 * tf.minimum(step * warmup_steps**-1.5, step**-0.5)
 
 def load_spectrograms(fpath):
     '''Read the wave file in `fpath`

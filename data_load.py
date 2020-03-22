@@ -1,24 +1,21 @@
 # -*- coding: utf-8 -*-
 #/usr/bin/python2
 '''
-By kyubyong park. kbpark.linguist@gmail.com.
+By kyubyong park. kbpark.linguist@gmail.com. 
 https://www.github.com/kyubyong/dc_tts
-
 '''
 
 from __future__ import print_function
 
 from hyperparams import Hyperparams as hp
 import numpy as np
-import pandas as pd
 import tensorflow as tf
 from utils import *
 import codecs
 import re
 import os
 import unicodedata
-import tqdm
-import time
+
 
 def load_vocab():
     char2idx = {char: idx for idx, char in enumerate(hp.vocab)}
@@ -34,7 +31,7 @@ def text_normalize(text):
     text = re.sub("[ ]+", " ", text)
     return text
 
-def load_data(mode="train", text_inputs=""):
+def load_data(mode="train", text_input=""):
     '''Loads data
       Args:
           mode: "train" or "synthesize".
@@ -43,80 +40,93 @@ def load_data(mode="train", text_inputs=""):
     char2idx, idx2char = load_vocab()
 
     if mode=="train":
+        if "LJ" in hp.data:
             # Parse
             fpaths, text_lengths, texts = [], [], []
             transcript = os.path.join(hp.data, 'metadata.csv')
             lines = codecs.open(transcript, 'r', 'utf-8').readlines()
-
             for line in lines:
                 fname, _, text = line.strip().split("|")
-                if fname[0] == '"':
-                    fname = fname[1:]
 
                 fpath = os.path.join(hp.data, "wavs", fname + ".wav")
                 fpaths.append(fpath)
 
-                text = text_normalize(text) # E: EOS
-                if text[-1] in ["'", ".", "?", " "]:
-                    text = text[:-1] + " E"
-                else:
-                    text = text + " E"
-
+                text = text_normalize(text) + "E"  # E: EOS
                 text = [char2idx[char] for char in text]
-                text_len = min(len(text),hp.max_N)
-                text_lengths.append(text_len)
-                texts.append(np.array(text, np.int32))
+                text_lengths.append(len(text))
+                texts.append(np.array(text, np.int32).tostring())
 
-            maxlen, minlen = max(text_lengths), min(text_lengths)
+            return fpaths, text_lengths, texts
+        else: # nick or kate
+            # Parse
+            fpaths, text_lengths, texts = [], [], []
+            transcript = os.path.join(hp.data, 'metadata.csv')
+            lines = codecs.open(transcript, 'r', 'utf-8').readlines()
+            for line in lines:
+                fname, _, text, is_inside_quotes, duration = line.strip().split("|")
+                duration = float(duration)
+                if duration > 10. : continue
 
-            # Calc total batch count
-            num_batch = len(fpaths) // hp.B
+                fpath = os.path.join(hp.data, fname)
+                fpaths.append(fpath)
 
-            text_lengths = np.asarray(text_lengths)
-            texts = np.asarray(texts)
+                text += "E"  # E: EOS
+                text = [char2idx[char] for char in text]
+                text_lengths.append(len(text))
+                texts.append(np.array(text, np.int32).tostring())
 
-            return fpaths, text_lengths, texts, maxlen, minlen
+        return fpaths, text_lengths, texts
 
     else: # synthesize on unseen test text.
         # Parse
-        lines = [text_inputs]
-        sents = [text_normalize(line).strip() for line in lines] # text normalization, E: EOS
-
-        for i in range(len(sents)):
-            if sents[i][-1] in ["'",".","?"," "]:
-                sents[i] = sents[i][:-1] + " E"
-            else:
-                sents[i] = sents[i] + " E"
-
+        lines = ["pad "+text_input]
+        sents = [text_normalize(line.split(" ", 1)[-1]).strip() + "E" for line in lines] # text normalization, E: EOS
         texts = np.zeros((len(sents), hp.max_N), np.int32)
         for i, sent in enumerate(sents):
             texts[i, :len(sent)] = [char2idx[char] for char in sent]
         return texts
 
-def get_batch(fpaths):
+def get_batch():
     """Loads training data and put them in queues"""
-    fname, mel, mag = [], [], []
-    max_mel = 0
-    max_mag = 0
+    # Load data
+    fpaths, text_lengths, texts = load_data() # list
+    maxlen, minlen = max(text_lengths), min(text_lengths)
 
-    for fpath in fpaths:
-        fname1, mel1, mag1 = load_spectrograms(fpath)  # (None, n_mels)
-        fname.append(fname1)
-        mel.append(mel1)
-        mag.append(mag1)
-        if mel1.shape[0] > max_mel:
-            max_mel = mel1.shape[0]
-        if mag1.shape[0] > max_mag:
-            max_mag = mag1.shape[0]
+    # Calc total batch count
+    num_batch = len(fpaths) // hp.B
+
+    # Create Queues
+    fpath, text_length, text = tf.train.slice_input_producer([fpaths, text_lengths, texts], shuffle=True)
+
+    # Parse
+    text = tf.decode_raw(text, tf.int32)  # (None,)
+
+    if hp.prepro:
+        def _load_spectrograms(fpath):
+            fname = os.path.basename(fpath)
+            mel = "mels/{}".format(fname.replace("wav", "npy"))
+            mag = "mags/{}".format(fname.replace("wav", "npy"))
+            return fname, np.load(mel), np.load(mag)
+
+        fname, mel, mag = tf.py_func(_load_spectrograms, [fpath], [tf.string, tf.float32, tf.float32])
+    else:
+        fname, mel, mag = tf.py_func(load_spectrograms, [fpath], [tf.string, tf.float32, tf.float32])  # (None, n_mels)
+
+    # Add shape information
+    fname.set_shape(())
+    text.set_shape((None,))
+    mel.set_shape((None, hp.n_mels))
+    mag.set_shape((None, hp.n_fft//2+1))
 
     # Batching
-    for n in range(len(fname)):
-        mel[n] = np.pad(mel[n], [[0, max_mel-mel[n].shape[0]], [0, 0]], mode="constant")
-        mag[n] = np.pad(mag[n], [[0, max_mag-mag[n].shape[0]], [0, 0]], mode="constant")
+    _, (texts, mels, mags, fnames) = tf.contrib.training.bucket_by_sequence_length(
+                                        input_length=text_length,
+                                        tensors=[text, mel, mag, fname],
+                                        batch_size=hp.B,
+                                        bucket_boundaries=[i for i in range(minlen + 1, maxlen - 1, 20)],
+                                        num_threads=8,
+                                        capacity=hp.B*4,
+                                        dynamic_pad=True)
 
-    fnames = tf.convert_to_tensor(fname)
-    mels = tf.convert_to_tensor(mel)
-    mags = tf.convert_to_tensor(mag)
-
-    return mels, mags, fnames, max_mel, max_mag
+    return texts, mels, mags, fnames, num_batch
 

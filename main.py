@@ -9,7 +9,7 @@ from load import init, synthesize
 app = Flask(__name__)
 
 print(datetime.datetime.now(), " model loading")
-ttm_model, ssrn_model = init()
+# ttm_model, ssrn_model = init()
 print(datetime.datetime.now(), " model loaded")
 
 @app.route('/', methods=['POST','GET'])
@@ -58,8 +58,8 @@ def submit():
 
             # synthesize speech from text
             print(datetime.datetime.now())
-            # output_filename = synthesize(text_input)
-            output_filename = synthesize(text_input, ttm_model, ssrn_model)
+            output_filename = synthesize(text_input)
+            # output_filename = synthesize(text_input, ttm_model, ssrn_model)
             session['audio_filename'] = output_filename
             # session['audio_filename'] = 'test_wav.wav'
             print(datetime.datetime.now())
