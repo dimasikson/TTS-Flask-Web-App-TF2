@@ -1,0 +1,10 @@
+*.data-00000-of-00001 filter=lfs diff=lfs merge=lfs -text
+*.pyd filter=lfs diff=lfs merge=lfs -text
+env/tensorflow_core filter=lfs diff=lfs merge=lfs -text
+logdir filter=lfs diff=lfs merge=lfs -text
+env/tensorflow_core/** filter=lfs diff=lfs merge=lfs -text
+logdir/** filter=lfs diff=lfs merge=lfs -text
+env/Lib/tensorflow_core/** filter=lfs diff=lfs merge=lfs -text
+env/Lib/site-packages/tensorflow_core/** filter=lfs diff=lfs merge=lfs -text
+finished_models/** filter=lfs diff=lfs merge=lfs -text
+*.h5 filter=lfs diff=lfs merge=lfs -text

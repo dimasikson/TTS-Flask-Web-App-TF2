@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}"> -->
+        <link rel="shortcut icon" href="">
+        <style>
+            body, html {
+                margin: 0;
+                color: azure;
+                background-color: #2b2d2f;
+                font-family: sans-serif;
+            }
+ 
+            .content {
+                margin: 0 auto;
+                width: 600px;
+            }
+ 
+            .form {
+                margin-top: 20px;
+                padding: 4px 0px;
+            }
+ 
+            #content {
+                width: 310px;
+				height: 24px;
+				padding: 4px 0px;
+				margin-right: 2px;
+                background-color: #2b2d2f;
+                border: 1px solid azure;
+                border-radius: 5px;
+            }
+
+ 
+            #content, textarea {
+                width: 510px;
+				height: 24px;
+                padding: 4px 0px;
+                background-color: #2b2d2f;
+                border-radius: 5px;
+				word-wrap: break-word;
+            }
+ 
+            #content, text {
+				width: 505px;
+				height: 24px;
+                padding: 4px 0px;
+                padding-left: 5px;
+				font-size: 20px;
+                color: azure;
+            }
+ 
+            .button {
+				width: 80px;
+				font-size: 20px;
+                padding: 4px 0px;
+                color: azure;
+                background-color: #2b2d2f;
+                border: 1px solid azure;
+                border-radius: 5px;
+                font-family: sans-serif;
+            }
+
+			.button2 {
+				font-size: medium; 
+				border-radius: 5px;
+				width: auto; 
+				padding: 3px 8px; 
+				margin-top: 5px;
+				margin-bottom: 5px; 
+				color: azure; 
+                border: 1px solid #36454f;
+				background-color: #36454f; 
+				font-weight: bolder; 
+				word-wrap: break-word;
+            }
+
+			.footerLinks {
+				font-size: large; 
+				border-radius: 5px;
+				width: auto; 
+				padding: 5px 10px; 
+				margin-right: 10px;
+				margin-bottom: 10px;
+				color: azure; 
+                border: 1px solid #36454f;
+				background-color: #28333a; 
+				font-weight: bolder;
+				text-decoration: none;
+			}
+ 
+        </style>
+        <title>Text-to-Speech CNN</title>
+    </head>
+    <body>
+        <!-- import libraries -->
+        <script src='http://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js'></script>
+		<script src="https://code.jquery.com/ui/1.11.4/jquery-ui.min.js"></script>
+
+        <div class="content">
+            <h1 style="padding-left: 60px;">Text-to-Speech CNN</h1>
+       
+			<form action='/submit' method="POST">
+				<div id="num_char_limit" style="height: 20px; padding-left: 440px;">
+					180 / 180
+				</div>
+				<input type="text" name="content" id="content" 
+					placeholder="Begin typing here!" autocomplete="off">
+				<input type="submit" id="main_submit" value="Submit" class="button" onclick="onSumbit()">
+
+				<div style="margin-top: 10px;" id="div_predicted_words">
+
+					<div id="word_list_predict">
+
+						<input type="button" class="button" name="button_suggest" id="button_suggest1"
+							style="width: auto; padding: 5px 8px; margin-right: 5px; margin-bottom: 5px;"
+							value=""></input>
+						<input type="button" class="button" name="button_suggest" id="button_suggest2"
+							style="width: auto; padding: 5px 8px; margin-right: 5px; margin-bottom: 5px;"
+							value=""></input>
+						<input type="button" class="button" name="button_suggest" id="button_suggest3"
+							style="width: auto; padding: 5px 8px; margin-right: 5px; margin-bottom: 5px;"
+							value=""></input>
+						
+					</div>
+
+					<input type="button" id="navigate_suggestion1" value="Press DOWN to navigate!" class="button2">
+					</input>
+
+					<input type="button" id="navigate_suggestion2" value="Press ENTER to add the word!" class="button2">
+					</input>
+
+				</div>
+			</form>	
+
+			<script>
+
+				var jsonData;
+				var jsonPromise = $.getJSON("static/jsonMarkov.txt", function(response){
+					jsonData = response;
+				});
+	
+				$('input[name="button_suggest"]').hide();
+				$('#navigate_suggestion1').hide();
+				$('#navigate_suggestion2').hide();
+
+				var suggestionsShowMaster = true;
+
+				var positionIndex;
+				var appendType;
+				appendType = '';
+				var text_value;
+				text_value = '';
+
+				const maxlen = 40;
+
+				window.mobileAndTabletcheck = function() {
+					var check = false;
+					(function(a){if(/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows ce|xda|xiino|android|ipad|playbook|silk/i.test(a)||/1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s\-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|\-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw\-(n|u)|c55\/|capi|ccwa|cdm\-|cell|chtm|cldc|cmd\-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc\-s|devi|dica|dmob|do(c|p)o|ds(12|\-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(\-|_)|g1 u|g560|gene|gf\-5|g\-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd\-(m|p|t)|hei\-|hi(pt|ta)|hp( i|ip)|hs\-c|ht(c(\-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i\-(20|go|ma)|i230|iac( |\-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc\-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|\-[a-w])|libw|lynx|m1\-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m\-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(\-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)\-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|\-([1-8]|c))|phil|pire|pl(ay|uc)|pn\-2|po(ck|rt|se)|prox|psio|pt\-g|qa\-a|qc(07|12|21|32|60|\-[2-7]|i\-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h\-|oo|p\-)|sdk\/|se(c(\-|0|1)|47|mc|nd|ri)|sgh\-|shar|sie(\-|m)|sk\-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h\-|v\-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl\-|tdg\-|tel(i|m)|tim\-|t\-mo|to(pl|sh)|ts(70|m\-|m3|m5)|tx\-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|\-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(\-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas\-|your|zeto|zte\-/i.test(a.substr(0,4))) check = true;})(navigator.userAgent||navigator.vendor||window.opera);
+					return check;
+				};
+
+				const phoneTabletYN = window.mobileAndTabletcheck();
+
+				var inKeyboardMode = false;
+				var suggestionsShowing = false;
+				
+				var hideSuggestionKeyDown = false;
+				var hideSuggestionEnter = false;
+
+				window.addEventListener('load', () => {
+					document.getElementById('content').focus();
+				});
+
+				var content_text;
+				var nextChar;
+				var nextCharArr;
+				var predictedWord;
+
+				var predictCharLength = 6;
+
+				function predictText(input_text){
+
+					content_text = ' '+input_text;
+
+					predictedWord = content_text;
+
+					if(content_text.length > predictCharLength){
+							content_text = content_text.substr(content_text.length - predictCharLength);	
+					}
+
+					nextChar = 'a'
+					var i = 0;
+
+					while (nextChar != ' '){
+
+						nextCharArr = jsonData[content_text];
+
+						if (!nextCharArr){
+							return '';
+						}
+
+						nextChar = nextCharArr[Math.floor(Math.random() * nextCharArr.length)];
+
+						content_text += nextChar;
+						predictedWord += nextChar;
+
+						if(content_text.length>predictCharLength){
+							content_text = content_text.substr(content_text.length - predictCharLength);
+						}
+
+						i++;
+
+					}
+
+					return predictedWord.substr(1);
+
+				};
+
+				function isLetter(str) {
+					if (str.length === 1 && str.match(/[a-z]/i)){
+						return true
+					} else {
+						return false
+					}
+				}
+
+				function updateCharLimit(){
+					var str_length = 180 - document.getElementById('content').value.length
+					var str_length2 = str_length.toString();
+					document.getElementById('num_char_limit').textContent = str_length2.concat(' / 180');
+
+					if (str_length <= 20 && str_length >= 1){
+						document.getElementById('num_char_limit').style.color = 'red';
+						$('#main_submit').show();
+					} else if (str_length < 1) {
+						document.getElementById('num_char_limit').style.color = 'red';
+						$('#main_submit').hide();
+					} else {
+						document.getElementById('num_char_limit').style.color = 'azure';
+						$('#main_submit').show();
+					}
+				}
+				
+				const eventOnCLick = function(event){
+
+					var textToAdd = this.value;
+
+					appendContent(appendType=appendType,
+								textToAdd=textToAdd);
+
+					document.getElementById('content').focus();
+					setTimeout(() => {  refreshList('predictWord'); }, 200);
+
+					inKeyboardMode = false;
+					$('input[name="button_suggest"]').animate({
+						backgroundColor: "#2b2d2f"
+					}, 100 );
+
+					text_value = document.getElementById('content').value;
+
+					updateCharLimit();
+				};
+
+				function appendContent(appendType,textToAdd){
+
+					if (appendType=='predictWord'){
+
+						document.getElementById('content').value += textToAdd + " ";
+
+					} else if (appendType=='completeWord'){
+
+						var text_array = document.getElementById('content').value.split(" ");
+						text_array[text_array.length-1] = textToAdd;
+						document.getElementById('content').value = text_array.join(" ") + " ";
+
+					}
+
+				}
+
+				var word_list_predict = [];
+				var maxButtonRight = 3;
+
+				function refreshList(appendType){
+
+					var elements_suggest = document.getElementsByName("button_suggest");
+
+					for (var i = 0; i < elements_suggest.length; i++) {
+						$(elements_suggest[i]).hide();
+						suggestionsShowing = false;
+					}
+
+					word_list_predict = [];
+
+					for (var i = 0; i < elements_suggest.length; i++) {
+
+						append_suggestion = predictText(document.getElementById('content').value);
+						append_suggestion = append_suggestion.split(' ');
+
+						append_suggestion = append_suggestion[append_suggestion.length-2];
+
+						if (append_suggestion!='' && append_suggestion!=' ' && typeof append_suggestion != "undefined" && !word_list_predict.includes(append_suggestion)){
+
+							word_list_predict.push(append_suggestion);
+
+						}
+					
+					}
+
+					maxButtonRight = word_list_predict.length;
+
+					if (maxButtonRight > 0) {
+
+						for (var i = 0; i < word_list_predict.length; i++) {
+
+							elements_suggest[i].value = word_list_predict[i];
+							$(elements_suggest[i]).show();
+							suggestionsShowing = true;
+
+							elements_suggest[i].removeEventListener('click', eventOnCLick);
+							elements_suggest[i].addEventListener('click', eventOnCLick);
+
+						}
+
+					} else {
+
+						$('#navigate_suggestion1').hide();
+						$('#navigate_suggestion2').hide();
+
+					}
+				}	
+
+
+				document.getElementById('content').addEventListener('keydown', function(event) {
+
+					var elements_suggest = document.getElementsByName("button_suggest");
+
+					if (document.getElementById('content') == document.activeElement && suggestionsShowing==true){
+
+						if (event.keyCode == 38){ // keyboard up
+							event.preventDefault()
+							$('#navigate_suggestion2').hide(200);
+
+							if (inKeyboardMode==true){
+								inKeyboardMode =! inKeyboardMode;
+		
+								$('input[name="button_suggest"]').animate({
+									backgroundColor: "#2b2d2f"
+								}, 100 );
+
+
+							}
+
+						} else if (event.keyCode == 40){ // keyboard down
+							event.preventDefault()
+							$('#navigate_suggestion1').hide(100);
+
+							if (document.getElementById('content').value!=''&&hideSuggestionEnter==false&&phoneTabletYN==false && suggestionsShowMaster==true){
+								$('#navigate_suggestion2').show(200);
+							}
+
+							hideSuggestionKeyDown=true;
+							
+
+							if (inKeyboardMode==false){
+								inKeyboardMode =! inKeyboardMode;
+								positionIndex = 1;
+
+								$('#button_suggest1').animate({
+									backgroundColor: "#36454f"
+								}, 100 );
+
+
+							}
+
+						} else if (event.keyCode == 37) { // keyboard left
+
+							if (inKeyboardMode==true){
+								event.preventDefault()
+								oldPosIndex = positionIndex;
+								positionIndex = Math.max(1,positionIndex-1);
+
+								$('#button_suggest'+oldPosIndex).animate({
+									backgroundColor: "#2b2d2f"
+								}, 100 );
+
+								$('#button_suggest'+positionIndex).animate({
+									backgroundColor: "#36454f"
+								}, 100 );
+
+
+							}
+
+						} else if (event.keyCode == 39) { // keyboard right
+
+
+							if (inKeyboardMode==true){
+
+								event.preventDefault()
+								oldPosIndex = positionIndex;
+								positionIndex = Math.min(maxButtonRight,positionIndex+1);
+
+								$('#button_suggest'+oldPosIndex).animate({
+									backgroundColor: "#2b2d2f"
+								}, 100 );
+
+								$('#button_suggest'+positionIndex).animate({
+									backgroundColor: "#36454f"
+								}, 100 );
+							}
+						} else if (event.keyCode == 13 && inKeyboardMode==true){
+
+							event.preventDefault();
+
+							$('#navigate_suggestion2').hide(200);
+							hideSuggestionEnter=true;
+							
+							var textToAdd = document.getElementById('button_suggest'+positionIndex).value;
+
+							appendContent(appendType=appendType,
+										textToAdd=textToAdd);
+							
+							document.getElementById('content').focus();
+							setTimeout(() => {  refreshList('predictWord'); }, 200);
+
+							inKeyboardMode = false;
+							$('input[name="button_suggest"]').animate({
+								backgroundColor: "#2b2d2f"
+							}, 100 );
+
+							text_value = document.getElementById('content').value;
+
+							updateCharLimit();
+
+						} else if (event.keyCode == 13 && document.getElementById('content').value.length>179){
+							event.preventDefault();
+						}
+					}
+
+				});
+
+				document.getElementById('content').addEventListener('blur', function(event) {
+					inKeyboardMode = false;
+					$('input[name="button_suggest"]').animate({
+						backgroundColor: "#2b2d2f"
+					}, 300 );
+
+					$('#navigate_suggestion1').hide(100);
+					$('#navigate_suggestion2').hide(100);
+
+
+				});
+
+				document.getElementById('content').addEventListener('focus', function(event) {
+					inKeyboardMode = false;
+
+					if (maxButtonRight != 0 && suggestionsShowMaster==true && hideSuggestionKeyDown==false&&document.getElementById('content').value!=''&&phoneTabletYN==false){
+						$('#navigate_suggestion1').show(200);
+					}
+
+				});
+
+				document.getElementById('content').addEventListener('input', function(event) {
+
+					document.getElementById('content').value = document.getElementById('content').value.replace(/[^a-zA-Z ]+/g, '').toLowerCase();
+
+					updateCharLimit();
+					
+					var text_value_new = document.getElementById('content').value;
+
+					var lastChar = text_value_new.substr(text_value_new.length-1).toString();
+					var lastChar2 = text_value_new.substr(text_value_new.length-2,1).toString();
+
+					if (text_value_new.length > text_value.length){
+
+						if (isLetter(lastChar)==true){
+
+							appendType = 'completeWord'
+
+						} else if (lastChar==' ' && isLetter(lastChar2)==true){
+
+							appendType = 'predictWord'
+
+						}
+
+						setTimeout(() => {  refreshList(appendType); }, 200);
+	
+						if(maxButtonRight != 0 && phoneTabletYN==false && hideSuggestionKeyDown==false && suggestionsShowMaster==true && document.getElementById('content').value != ''){
+
+							$('#navigate_suggestion1').show(200);
+
+						}
+
+					} else if (text_value_new.length == text_value.length) {
+
+						// skip
+
+					} else {
+
+
+						$('#navigate_suggestion1').hide(100);
+						$('#navigate_suggestion2').hide(100);
+
+						var elements_suggest = document.getElementsByName("button_suggest");
+
+						inKeyboardMode = false;
+
+						$('input[name="button_suggest"').animate({
+							backgroundColor: "#2b2d2f"
+						}, 100 );
+
+
+						for (var i = 0; i < elements_suggest.length; i++) {
+
+							$(elements_suggest[i]).hide();
+							suggestionsShowing=false;
+							elements_suggest[i].value = ''
+							
+						}
+
+					}
+
+					text_value = text_value_new;
+
+				});
+
+			</script>
+
+            {% if text_input != '' %}
+                <p hidden id="text_input_content">{{text_input}}</p>
+                <h4 id="msg" style="font-size: 20px;">
+                    <script>
+
+						suggestionsShowMaster = false;
+
+                        var text_input_content = document.getElementById("text_input_content").textContent;
+						var text_input_length = document.getElementById("text_input_content").textContent.length;
+						var input_interval = Math.ceil(2000/text_input_length)
+
+						var showText = function (target, message, index, interval) {  
+                            if (index < message.length) {
+                                $(target).append(message[index++]);
+                                setTimeout(
+                                    function () { showText(target, message, index, interval); },
+                                    interval
+                                );
+                            }
+                        };
+ 
+                        $(function () {
+                            showText("#msg", text_input_content, 0, input_interval);
+						});
+						
+                    </script>
+                </h4>               
+            {% endif %} 
+        </div>
+
+        {% if text_input == '' %}
+
+             <div class="content">
+                <div style="margin-top: 20px;">
+					<canvas id="progress" height="5" width="600"
+						style="background-color: #36454f; margin-top: 20px; border-radius: 2px;">
+                    </canvas>
+                </div>
+            </div>
+
+        {% else %}
+
+            <div class="content">
+                <audio id="player" ontimeupdate="audio_time_update()" onended="audio_ended()">
+                    <source src="{{ url_for('static', filename=session['audio_filename']) }}" type="audio/wav">
+                </audio>
+                <div style="margin-top: 20px;">
+                    <button id="play_pause_button" class="button" style="width: 70px;">
+                        Play
+                    </button>
+
+                    <canvas id="progress" height="5" width="520"
+                        style="background-color: #36454f; margin-top: 20px; border-radius: 2px;">
+                    </canvas>
+
+                    <canvas id="fft_analyzer" height="150" width="600"
+                        style="background-color: #2b2d2f; margin-top: 10px;">
+                    </canvas>
+
+                    <script>
+
+                        var canvasWidth = 520;
+                        var buttonPlayPause = document.getElementById("play_pause_button");
+                        var canvas = document.getElementById("progress").getContext('2d');
+                        var fft_analyzer_canvas = document.getElementById("fft_analyzer");
+						var ctx = fft_analyzer_canvas.getContext('2d');
+ 
+                        var context = new AudioContext();
+                        var myAudio = document.getElementById("player");
+                        var analyser = context.createAnalyser();
+                        var src = context.createMediaElementSource(myAudio);
+                        src.connect(analyser);
+                        analyser.connect(context.destination);
+ 
+                        var numBars = 50;
+                        var bar_width = 1;
+                        var bar_height_init = -4;
+ 
+                        window.addEventListener('load', () => {
+                            ctx.fillStyle = '#74bbfb';
+                            for (var i = 0; i < numBars; i++) {
+                                bar_x = i * (600/numBars);
+                                ctx.fillRect(bar_x+5, 0, bar_width, -bar_height_init);
+							};
+							
+                        });
+ 
+                        buttonPlayPause.addEventListener('click', () => {
+ 
+                            if (context.state == 'suspended') {
+                                context.resume().then(() => console.log(context.state));
+                            }
+
+                            if (myAudio.paused) {
+
+								buttonPlayPause.textContent="Pause";
+                                myAudio.play();
+                                frameLooper();
+
+                            } else {
+
+                                buttonPlayPause.textContent="Play";
+                                myAudio.pause();
+
+                            }
+                        });
+
+                        function frameLooper()
+                        {
+                            window.requestAnimationFrame(frameLooper);
+                            fbc_array = new Uint8Array(analyser.frequencyBinCount);
+                            analyser.getByteFrequencyData(fbc_array);
+                            ctx.clearRect(0, 0, fft_analyzer_canvas.width, fft_analyzer_canvas.height);
+                            ctx.fillStyle = '#74bbfb';
+
+                            for (var i = 0; i < numBars; i++) {
+                                bar_x = i * (600/numBars);
+                                bar_height = -(fbc_array[i] / 2) + bar_height_init;
+
+                                // right side up
+                                // ctx.fillRect(bar_x, fft_analyzer_canvas.height, bar_width, bar_height);
+
+                                // upside down
+                                ctx.fillRect(bar_x+5, 0, bar_width, -bar_height);
+
+                                // squares
+                                // ctx.fillRect(bar_x, -bar_height+5, bar_width, -5);
+                            }
+                        }
+
+                        function audio_time_update()
+                        {
+
+                            var currentTime = myAudio.currentTime;
+                            var duration = myAudio.duration;
+                            var progress = canvasWidth * ( currentTime / duration );
+
+                            canvas.fillStyle = '#74bbfb';
+                            canvas.fillRect(0,0,progress,5);
+
+						};
+						
+                        function audio_ended()
+                        {
+
+							buttonPlayPause.textContent="Play";
+
+                            canvas.fillStyle = '#36454f';
+                            canvas.fillRect(0,0,540,5);
+
+						};
+						
+                    </script>
+                </div>
+            </div>
+		{% endif %}
+		
+		<script>
+
+			$(document).ready(function(){
+
+
+				$('.button').hover(
+					function () {
+
+						if (inKeyboardMode==true) {
+							if (!(this.name=='button_suggest'&&this.id[this.id.length-1]==positionIndex)){
+
+								$(this).animate({
+									backgroundColor: "#36454f"
+								}, 100 );
+
+							}
+
+						} else {
+
+							$(this).animate({
+								backgroundColor: "#36454f"
+							}, 100 );
+
+						}
+
+					},
+					function () {
+
+						if (inKeyboardMode==true) {
+							if (!(this.name=='button_suggest'&&this.id[this.id.length-1]==positionIndex)){
+
+								$(this).animate({
+									backgroundColor: "#2b2d2f"						
+								}, 100 );
+
+							}
+
+						} else {
+
+							$(this).animate({
+								backgroundColor: "#2b2d2f"						
+							}, 100 );
+
+						}
+
+					}
+				);
+
+				$('.footerLinks').hover(
+					function () {							
+
+						$(this).animate({
+							backgroundColor: "#36454f"
+						}, 100 );
+					},
+					function () {
+
+						$(this).animate({
+							backgroundColor: "#28333a"
+						}, 100 );
+
+					}
+				);
+
+			});
+
+		</script>
+
+		<div class="content" style="margin-top: 150px; margin-bottom: 10px;">
+
+			<a href="https://www.kaggle.com/dimasikson/deep-convolutional-text-to-speech-model" class="footerLinks">
+				Kaggle article
+			</a>
+			<a href="https://github.com/dimasikson/dc_tts_keras" class="footerLinks">
+				Github for this page
+			</a>
+			<a href="https://github.com/Kyubyong/dc_tts" class="footerLinks">
+				Github of original code
+			</a>
+
+		</div>
+
+		<div class="content" style="margin-top: 20px; margin-bottom: 10px;">
+
+			<a href="https://arxiv.org/abs/1710.08969" class="footerLinks"> 
+				Original paper for Text to Speech
+			</a>
+
+		</div>
+
+	</body>
+</html>
+
