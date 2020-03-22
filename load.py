@@ -14,8 +14,8 @@ from scipy.io.wavfile import write
 from tqdm import tqdm
 import datetime
 
-gpus = tf.config.experimental.list_physical_devices('GPU')
-tf.config.experimental.set_memory_growth(gpus[0], True)
+# gpus = tf.config.experimental.list_physical_devices('GPU')
+# tf.config.experimental.set_memory_growth(gpus[0], True)
 
 
 def init(): 
