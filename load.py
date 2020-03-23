@@ -14,8 +14,8 @@ from scipy.io.wavfile import write
 from tqdm import tqdm
 import datetime
 
-# gpus = tf.config.experimental.list_physical_devices('GPU')
-# tf.config.experimental.set_memory_growth(gpus[0], True)
+gpus = tf.config.experimental.list_physical_devices('GPU')
+tf.config.experimental.set_memory_growth(gpus[0], True)
 
 
 def init(): 
@@ -34,13 +34,13 @@ def synthesize(text_input):
         # Restore parameters
         var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'Text2Mel')
         saver1 = tf.train.Saver(var_list=var_list)
-        saver1.restore(sess, tf.train.latest_checkpoint(os.path.join(hp.logdir) + "-1" + " - Copy"))
+        saver1.restore(sess, tf.train.latest_checkpoint("logdir/LJ01-1 - Copy"))
         print("Text2Mel Restored!")
 
         var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'SSRN') + \
                    tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, 'gs')
         saver2 = tf.train.Saver(var_list=var_list)
-        saver2.restore(sess, tf.train.latest_checkpoint(os.path.join(hp.logdir) + "-2" + " - Copy"))
+        saver2.restore(sess, tf.train.latest_checkpoint("logdir/LJ01-2 - Copy"))
         print("SSRN Restored!")
 
         # Feed Forward
