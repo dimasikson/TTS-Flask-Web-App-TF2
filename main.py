@@ -67,8 +67,9 @@ def submit():
     return render_template('index.html', text_input=text_input, text_input_list=text_input_list,
                             audio_filename=session['audio_filename'])
  
+app.secret_key = 'SECRET KEY'
 
 if __name__ == "__main__":
-    app.secret_key = 'SECRET KEY'
+    app.config['SESSION_TYPE'] = 'filesystem'
     app.run(debug=True,use_reloader=False)
 
