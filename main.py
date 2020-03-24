@@ -10,6 +10,7 @@ app = Flask(__name__)
 
 print(datetime.datetime.now(), " model loading")
 # ttm_model, ssrn_model = init()
+g = init()
 print(datetime.datetime.now(), " model loaded")
 
 @app.route('/', methods=['POST','GET'])

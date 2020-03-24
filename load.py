@@ -26,7 +26,7 @@ def synthesize(text_input):
     # Load data
     L = load_data(mode="synthesize",text_input=text_input)
 
-    g = Graph(mode="synthesize")
+    # g = Graph(mode="synthesize")
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
